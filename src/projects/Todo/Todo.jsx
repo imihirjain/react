@@ -1,45 +1,27 @@
-import { useEffect, useState } from "react";
-import { MdCheck, MdDeleteForever } from "react-icons/md";
+import { TodoForm } from "./TodoForm";
+import { TodoList } from "./TodoList";
+import { TodoDateTime } from "./TodoDateTime";
+import { useState } from "react";
+import { getDataLocalStorage, setDataLocalStorage } from "./TodoLocalStorage";
 
 const Todo = () => {
-  const [inputValue, setInputValue] = useState("");
-  const [task, setTask] = useState([]);
-  const [dateTime, setDateTime] = useState("");
-  const handleFormSubmit = (event) => {
-    event.preventDefault();
+  const [task, setTask] = useState(() => getDataLocalStorage());
 
-    if (!inputValue) return;
+  const handleFormSubmit = (inputValue) => {
+    const { id, content, checked } = inputValue;
+    if (!content) return;
 
-    if (task.includes(inputValue)) {
-      setInputValue("");
-      return;
-    }
+    const ifToDoContentMatched = task.find(
+      (currTask) => currTask.content === content
+    );
 
-    setTask((prev) => [...prev, inputValue]);
-
-    setInputValue("");
+    if (ifToDoContentMatched) return;
+    setTask((prev) => [...prev, { id, content, checked }]);
   };
-
-  const handleInput = (value) => {
-    setInputValue(value);
-  };
-
-  // Todo Date and time
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date();
-      const formattedDate = now.toLocaleDateString();
-      const formattedTime = now.toLocaleTimeString();
-
-      setDateTime(`${formattedDate} - ${formattedTime}`);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Todo Delete and clear all functionality
   const handleDeleteTask = (value) => {
-    const updatedTask = task.filter((currTask) => currTask != value);
+    const updatedTask = task.filter((currTask) => currTask.content != value);
 
     setTask(updatedTask);
   };
@@ -47,53 +29,41 @@ const Todo = () => {
   const handleClearAll = () => {
     setTask([]);
   };
+
+  // Todo change functionality
+  const handleChangeTodo = (content) => {
+    const updatedTask = task.map((currTask) => {
+      if (currTask.content === content) {
+        return { ...currTask, checked: !currTask.checked };
+      } else {
+        return currTask;
+      }
+    });
+    setTask(updatedTask);
+  };
+
+  // Add the data as it is after refresh
+  setDataLocalStorage(task);
   return (
     <>
       <div className="flex flex-col gap-3 justify-center items-center w-full h-full">
         <h1 className="mt-4 bg-slate-400 px-4 py-2 rounded-lg text-4xl font-mono">
           Todo List
         </h1>
-        <h2>{dateTime}</h2>
+        <TodoDateTime />
         <div>
-          <div className="flex justify-center rounded-lg mt-4">
-            <form onSubmit={handleFormSubmit}>
-              <input
-                type="text"
-                autoComplete="off"
-                placeholder="enter the task"
-                value={inputValue}
-                onChange={(event) => handleInput(event.target.value)}
-                className="uppercase bg-slate-200 px-4 py-2 "
-              />
-              <button
-                type="submit"
-                className="bg-slate-400 rounded-tr-md rounded-br-md px-4 py-2"
-              >
-                Add Task
-              </button>
-            </form>
-          </div>
+          <TodoForm onAddTodo={handleFormSubmit} />
 
           <section className="mt-2 flex flex-col ">
-            {task.map((currEl, index) => {
+            {task.map((currEl) => {
               return (
-                <li
-                  key={index}
-                  className="list-none uppercase mt-4 border-2 border-black rounded-md px-4 py-2"
-                >
-                  <div className="flex justify-between">
-                    <span className="text-2xl">{currEl}</span>
-                    <button className="text-2xl ">
-                      <MdCheck />
-                    </button>
-                    <button
-                      className="text-2xl"
-                      onClick={() => handleDeleteTask(currEl)}
-                    >
-                      <MdDeleteForever />
-                    </button>
-                  </div>
-                </li>
+                <TodoList
+                  key={currEl.id}
+                  data={currEl.content}
+                  checked={currEl.checked}
+                  onHandleDelete={handleDeleteTask}
+                  onHandleChangeTodo={handleChangeTodo}
+                />
               );
             })}
           </section>
